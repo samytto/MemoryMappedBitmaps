@@ -11,18 +11,18 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/samytto/Documents/Logiciels/Jars/extendedSet2.2.jar"/>
-	<classpathentry kind="lib" path="C:/Users/samytto/Documents/Logiciels/Jars/RoaringBitmap-0.1.5.jar"/>
+	<classpathentry kind="lib" path="C:/Users/samytto/Documents/eclipseKepler/Workspace/git/MemoryMeppedFiles/lib/extendedSet2.2.jar"/>
 	<classpathentry kind="lib" path="lib/SizeOf.jar"/>
-	<classpathentry kind="lib" path="C:/Users/samytto/Documents/Logiciels/Jars/guava-17.0.jar"/>
-	<classpathentry kind="lib" path="C:/Users/samytto/Documents/Logiciels/Jars/hamcrest-core-1.3.jar"/>
-	<classpathentry kind="lib" path="C:/Users/samytto/Documents/Logiciels/Jars/junit-4.11.jar"/>
-	<classpathentry kind="lib" path="C:/Users/samytto/Documents/Logiciels/Jars/jsr305-2.0.1.jar"/>
-	<classpathentry kind="lib" path="C:/Users/samytto/Documents/Logiciels/Jars/google-collections-0.9.jar"/>
+	<classpathentry kind="lib" path="C:/Users/samytto/Documents/eclipseKepler/Workspace/git/MemoryMeppedFiles/lib/guava-17.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/samytto/Documents/eclipseKepler/Workspace/git/MemoryMeppedFiles/lib/hamcrest-core-1.3.jar"/>
+	<classpathentry kind="lib" path="C:/Users/samytto/Documents/eclipseKepler/Workspace/git/MemoryMeppedFiles/lib/junit-4.11.jar"/>
+	<classpathentry kind="lib" path="C:/Users/samytto/Documents/eclipseKepler/Workspace/git/MemoryMeppedFiles/lib/jsr305-2.0.1.jar"/>
 	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
 		<attributes>
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/samytto/Documents/eclipseKepler/Workspace/git/MemoryMeppedFiles/lib/RoaringBitmap-0.1.5.jar"/>
+	<classpathentry kind="lib" path="C:/Users/samytto/Documents/eclipseKepler/Workspace/git/MemoryMeppedFiles/lib/google-collections-0.9.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

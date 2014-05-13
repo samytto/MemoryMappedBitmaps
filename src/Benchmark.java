@@ -52,12 +52,11 @@ public class Benchmark {
 				dos.close();
 				RandomAccessFile memoryMappedFile = new RandomAccessFile(file, "r");
 				MappedByteBuffer mbb = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);
-				//Calculer espace de stockage sur RAM
+			
 				boolean sizeOf = true;
                 try {
                         SizeOf.setMinSizeToLog(0);
                         SizeOf.skipStaticField(true);
-                        // SizeOf.skipFinalField(true);
                         SizeOf.deepSizeOf(args);
                 } catch (IllegalStateException e) {
                         sizeOf = false;
@@ -65,7 +64,7 @@ public class Benchmark {
                                 .println("# disabling sizeOf, run  -javaagent:lib/SizeOf.jar or equiv. to enable");
 
                 }		
-              //Calculer espace de stockage sur RAM in bytes
+              //RAM space used in bytes
                 long sizeRAM = 0;
                 ArrayList<ImmutableRoaringBitmap> irbs = new ArrayList<ImmutableRoaringBitmap>();
 				for(int k=0; k < offsets.size()-1; k++) {
@@ -76,9 +75,9 @@ public class Benchmark {
 					irbs.add(irb);
 					sizeRAM += (SizeOf.deepSizeOf(irb));
 				}
-				//Calculer espace de stockage sur disque in bytes
+				//Disk space used in bytes
 				long sizeDisque = file.length();
-				//Effectuer l'union de 200 RoaringBitmaps
+				//Unions between 200 RoaringBitmaps
 				long unionTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {
 				ImmutableRoaringBitmap irb = irbs.get(0);
@@ -91,7 +90,7 @@ public class Benchmark {
 				unionTime+=aft-bef;
 				}
 				unionTime/=nbRepetitions;
-				//Effectuer l'intersection de roaring bitmaps
+				//Intersections between 200 Roaring bitmaps
 				long intersectTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {
 				ImmutableRoaringBitmap irb = irbs.get(0);
@@ -104,7 +103,7 @@ public class Benchmark {
 				intersectTime+=aft-bef;
 				}
 				intersectTime/=nbRepetitions;
-				//Calculer temps de récupération des bits positifs
+				//Average time to retrieve set bits
 				long scanTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {
 				for(int k=0; k<irbs.size(); k++){
@@ -146,8 +145,7 @@ public class Benchmark {
 					dos.flush();
 				}
 				long lastOffset = fos.getChannel().position();
-				dos.close();
-				//Calculer espace de stockage sur RAM
+				dos.close();				
 				boolean sizeOf = true;
                 try {
                         SizeOf.setMinSizeToLog(0);
@@ -174,27 +172,27 @@ public class Benchmark {
 				}
 				//Disk storage in bytes
 				long sizeDisque = file.length();
-				//Average time to compute the union of 200 Roaring bitmaps
+				//Average time to compute unions between 200 Roaring bitmaps
 				long unionTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {				
 				long bef = System.currentTimeMillis();
-				ImmutableConciseSet ics = ImmutableConciseSet.union(icss);							
+				ImmutableConciseSet ics = ImmutableConciseSet.union(icss.iterator());							
 				long aft = System.currentTimeMillis();
 				unionTime+=aft-bef;
 				careof+=ics.size();	
 				}
 				unionTime/=nbRepetitions;
-				//Average time to intersect 200 Roaring bitmaps
+				//Average time to compute intersects between 200 Roaring bitmaps
 				long intersectTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {				
 				long bef = System.currentTimeMillis();
-				ImmutableConciseSet ics = ImmutableConciseSet.intersection(icss);
+				ImmutableConciseSet ics = ImmutableConciseSet.intersection(icss.iterator());
 				long aft = System.currentTimeMillis();
 				careof+=ics.size();
 				intersectTime+=aft-bef;
 				}
 				intersectTime/=nbRepetitions;
-				//Average time to retrieving set bits
+				//Average time to retrieve set bits
 				long scanTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {
 				for(int k=0; k<icss.size(); k++){
