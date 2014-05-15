@@ -11,12 +11,15 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 
 import net.sourceforge.sizeof.SizeOf;
 
+import org.roaringbitmap.buffer.BufferFastAggregation;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.RoaringBitmap;
+import org.roaringbitmap.FastAggregation;
+import org.roaringbitmap.RoaringBitmap;
 
 
 public class Benchmark {
@@ -66,26 +69,31 @@ public class Benchmark {
                 }		
               //RAM space used in bytes
                 long sizeRAM = 0;
-                ArrayList<ImmutableRoaringBitmap> irbs = new ArrayList<ImmutableRoaringBitmap>();
+                //ArrayList<ImmutableRoaringBitmap> irbs = new ArrayList<ImmutableRoaringBitmap>();
+                ImmutableRoaringBitmap[] irbs = new ImmutableRoaringBitmap[200];
+                int i_rb = 0;
 				for(int k=0; k < offsets.size()-1; k++) {
 					mbb.position((int)offsets.get(k).longValue());
 					final ByteBuffer bb = mbb.slice(); 
 					bb.limit((int) (offsets.get(k+1)-offsets.get(k)));
 					ImmutableRoaringBitmap irb = new ImmutableRoaringBitmap(bb);
-					irbs.add(irb);
+					irbs[i_rb] = irb;
+					i_rb++;
 					sizeRAM += (SizeOf.deepSizeOf(irb));
 				}
+				irbs = Arrays.copyOfRange(irbs, 0, i_rb);
 				//Disk space used in bytes
 				long sizeDisque = file.length();
-				//Unions between 200 RoaringBitmaps
+				//Unions between 200 Roaring bitmaps
 				long unionTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {
-				ImmutableRoaringBitmap irb = irbs.get(0);
+				//ImmutableRoaringBitmap irb = irbs.get(0);
 				long bef = System.currentTimeMillis();
-				for (int j=1; j<irbs.size()-1; j++) {
+				BufferFastAggregation.or(irbs);
+				/*for (int j=1; j<irbs.size()-1; j++) {
 					irb = ImmutableRoaringBitmap.or(irb, irbs.get(j));
 					careof+=irb.getCardinality();
-				}
+				}*/
 				long aft = System.currentTimeMillis();
 				unionTime+=aft-bef;
 				}
@@ -93,12 +101,13 @@ public class Benchmark {
 				//Intersections between 200 Roaring bitmaps
 				long intersectTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {
-				ImmutableRoaringBitmap irb = irbs.get(0);
+				//ImmutableRoaringBitmap irb = irbs.get(0);				
 				long bef = System.currentTimeMillis();
-				for (int j=1; j<irbs.size()-1; j++) {
+				BufferFastAggregation.and(irbs);
+				/*for (int j=1; j<irbs.size()-1; j++) {
 					irb = ImmutableRoaringBitmap.and(irb, irbs.get(j));
 					careof+=irb.getCardinality();
-				}
+				}*/
 				long aft = System.currentTimeMillis();
 				intersectTime+=aft-bef;
 				}
@@ -106,8 +115,8 @@ public class Benchmark {
 				//Average time to retrieve set bits
 				long scanTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {
-				for(int k=0; k<irbs.size(); k++){
-					ImmutableRoaringBitmap irb = irbs.get(k);
+				for(int k=0; k<irbs.length; k++){
+					ImmutableRoaringBitmap irb = irbs[k];//irbs.get(k);
 					Iterator<Integer> it = irb.iterator();
 					long bef = System.currentTimeMillis();
 					while(it.hasNext())
