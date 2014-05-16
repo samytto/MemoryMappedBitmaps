@@ -87,28 +87,22 @@ public class Benchmark {
 				//Unions between 200 Roaring bitmaps
 				long unionTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {
-				//ImmutableRoaringBitmap irb = irbs.get(0);
+				ImmutableRoaringBitmap irb;
 				long bef = System.currentTimeMillis();
-				BufferFastAggregation.or(irbs);
-				/*for (int j=1; j<irbs.size()-1; j++) {
-					irb = ImmutableRoaringBitmap.or(irb, irbs.get(j));
-					careof+=irb.getCardinality();
-				}*/
+				irb = BufferFastAggregation.or(irbs);
 				long aft = System.currentTimeMillis();
+				careof+=irb.getCardinality();
 				unionTime+=aft-bef;
 				}
 				unionTime/=nbRepetitions;
 				//Intersections between 200 Roaring bitmaps
 				long intersectTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {
-				//ImmutableRoaringBitmap irb = irbs.get(0);				
+				ImmutableRoaringBitmap irb;				
 				long bef = System.currentTimeMillis();
-				BufferFastAggregation.and(irbs);
-				/*for (int j=1; j<irbs.size()-1; j++) {
-					irb = ImmutableRoaringBitmap.and(irb, irbs.get(j));
-					careof+=irb.getCardinality();
-				}*/
+				irb = BufferFastAggregation.and(irbs);				
 				long aft = System.currentTimeMillis();
+				careof+=irb.getCardinality();
 				intersectTime+=aft-bef;
 				}
 				intersectTime/=nbRepetitions;
@@ -136,6 +130,7 @@ public class Benchmark {
 				System.out.println("Unions time = "+unionTime+" ms");
 				System.out.println("Intersctions time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
+				System.out.println(".ignore = "+careof);
 			}
 				//***************** ConciseSet part **********************************
 			{	
@@ -181,7 +176,7 @@ public class Benchmark {
 				}
 				//Disk storage in bytes
 				long sizeDisque = file.length();
-				//Average time to compute unions between 200 Roaring bitmaps
+				//Average time to compute unions between 200 ConciseSets
 				long unionTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {				
 				long bef = System.currentTimeMillis();
@@ -191,7 +186,7 @@ public class Benchmark {
 				careof+=ics.size();	
 				}
 				unionTime/=nbRepetitions;
-				//Average time to compute intersects between 200 Roaring bitmaps
+				//Average time to compute intersects between 200 ConciseSets
 				long intersectTime = 0;
 				for(int rep=0; rep<nbRepetitions; rep++) {				
 				long bef = System.currentTimeMillis();
@@ -225,6 +220,7 @@ public class Benchmark {
 				System.out.println("Unions time = "+unionTime+" ms");
 				System.out.println("Intersctions time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
+				System.out.println(".ignore = "+careof);
 		}
 			}			
 		} catch (IOException e) {e.printStackTrace();}
