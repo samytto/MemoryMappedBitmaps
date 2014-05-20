@@ -1,3 +1,8 @@
+/*
+ * (c) Samy Chambi, Daniel Lemire.
+ * 
+ */
+
 import it.uniroma3.mat.extendedset.intset.ConciseSet;
 import it.uniroma3.mat.extendedset.intset.ImmutableConciseSet;
 import it.uniroma3.mat.extendedset.intset.IntSet.IntIterator;
