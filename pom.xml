@@ -14,13 +14,32 @@
           <target>1.7</target>
         </configuration>
       </plugin>
+	<plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+                <execution>
+                    <id>copy-dependencies</id>
+                    <phase>prepare-package</phase>
+                    <goals>
+                        <goal>copy-dependencies</goal>
+                    </goals>
+                    <configuration>
+                        <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                        <overWriteReleases>false</overWriteReleases>
+                        <overWriteSnapshots>false</overWriteSnapshots>
+                        <overWriteIfNewer>true</overWriteIfNewer>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
     </plugins>
   </build>
   
   <dependencies>
   	<dependency>
     	<artifactId>ConciseSet</artifactId>
-    	<groupId>it.uniroma3.mat.extendedset.intset.ConciseSet</groupId>
+    	<groupId>it.uniroma3.mat.extendedset.intset</groupId>
      	<version>2.2.0</version>
     	<scope>system</scope>
     	<systemPath>${basedir}/lib/extendedSet2.2.jar</systemPath>
@@ -60,7 +79,6 @@
         <groupId>org.roaringbitmap</groupId>
         <artifactId>RoaringBitmap</artifactId>
         <version>0.2.2</version>
-        <scope>compile</scope>
       </dependency>
   	<dependency>
   		<groupId>com.google.collections</groupId>
