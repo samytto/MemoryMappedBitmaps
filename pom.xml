@@ -19,6 +19,20 @@
   
   <dependencies>
   	<dependency>
+    	<artifactId>ConciseSet</artifactId>
+    	<groupId>it.uniroma3.mat.extendedset.intset.ConciseSet</groupId>
+     	<version>2.2.0</version>
+    	<scope>system</scope>
+    	<systemPath>${basedir}/lib/extendedset2.2.jar</systemPath>
+	</dependency>
+	<dependency>
+    	<artifactId>SizeOf</artifactId>
+    	<groupId>net.sourceforge</groupId>
+     	<version>1.0-SNAPSHOT</version>
+    	<scope>system</scope>
+    	<systemPath>${basedir}/lib/SizeOf.jar</systemPath>
+	</dependency>
+  	<dependency>
   		<groupId>com.google.guava</groupId>
 		<artifactId>guava</artifactId>
 		<version>17.0</version>
