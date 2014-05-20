@@ -23,7 +23,7 @@
     	<groupId>it.uniroma3.mat.extendedset.intset.ConciseSet</groupId>
      	<version>2.2.0</version>
     	<scope>system</scope>
-    	<systemPath>${basedir}/lib/extendedset2.2.jar</systemPath>
+    	<systemPath>${basedir}/lib/extendedSet2.2.jar</systemPath>
 	</dependency>
 	<dependency>
     	<artifactId>SizeOf</artifactId>
