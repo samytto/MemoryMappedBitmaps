@@ -49,7 +49,7 @@ public class Benchmark {
 				//Building 200 RoaringBitmaps 
 				for (int j=0; j<200; j++) {					
 					int[] data = dataRetriever.fetchBitPositions(dataSet, j);
-					datum[j] = data;
+					datum[j] = data.clone();
 					RoaringBitmap rb = RoaringBitmap.bitmapOf(data);
 					rb.trim();
 					offsets.add(fos.getChannel().position());
@@ -154,17 +154,7 @@ public class Benchmark {
 					dos.flush();
 				}
 				long lastOffset = fos.getChannel().position();
-				dos.close();				
-				boolean sizeOf = true;
-                try {
-                        SizeOf.setMinSizeToLog(0);
-                        SizeOf.skipStaticField(true);
-                        SizeOf.deepSizeOf(args);
-                } catch (IllegalStateException e) {
-                        sizeOf = false;
-                        System.out
-                                .println("# disabling sizeOf, run  -javaagent:lib/SizeOf.jar or equiv. to enable");
-                }		
+				dos.close();                
                 //RAM storage in bytes
                 long sizeRAM = 0;
                 ArrayList<ImmutableConciseSet> icss = new ArrayList<ImmutableConciseSet>();
