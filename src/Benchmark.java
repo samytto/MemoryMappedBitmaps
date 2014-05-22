@@ -74,7 +74,6 @@ public class Benchmark {
                 }		
               //RAM space used in bytes
                 long sizeRAM = 0;
-                //ArrayList<ImmutableRoaringBitmap> irbs = new ArrayList<ImmutableRoaringBitmap>();
                 ImmutableRoaringBitmap[] irbs = new ImmutableRoaringBitmap[200];
                 int i_rb = 0;
 				for(int k=0; k < offsets.size()-1; k++) {
@@ -116,7 +115,7 @@ public class Benchmark {
 				for(int rep=0; rep<nbRepetitions; rep++) {
 				for(int k=0; k<irbs.length; k++){
 					ImmutableRoaringBitmap irb = irbs[k];//irbs.get(k);
-					Iterator<Integer> it = irb.iterator();
+					org.roaringbitmap.IntIterator it = irb.getIntIterator();
 					long bef = System.currentTimeMillis();
 					while(it.hasNext())
 					 {
@@ -131,9 +130,9 @@ public class Benchmark {
 				System.out.println("Roaring bitmap on "+dataSet+" dataset");
 				System.out.println("***************************");
 				System.out.println("RAM Size = "+sizeRAM+" bytes");
-				System.out.println("Disque Size = "+sizeDisque+" bytes");
+				System.out.println("Disk Size = "+sizeDisque+" bytes");
 				System.out.println("Unions time = "+unionTime+" ms");
-				System.out.println("Intersctions time = "+intersectTime+" ms");
+				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
 				System.out.println(".ignore = "+careof);
 			}
@@ -208,12 +207,12 @@ public class Benchmark {
 				}
 				scanTime/=nbRepetitions;
 				System.out.println("***************************");
-				System.out.println("CociseSet on "+dataSet+" dataset");
+				System.out.println("ConciseSet on "+dataSet+" dataset");
 				System.out.println("***************************");
 				System.out.println("RAM Size = "+sizeRAM+" bytes");
-				System.out.println("Disque Size = "+sizeDisque+" bytes");
+				System.out.println("Disk Size = "+sizeDisque+" bytes");
 				System.out.println("Unions time = "+unionTime+" ms");
-				System.out.println("Intersctions time = "+intersectTime+" ms");
+				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
 				System.out.println(".ignore = "+careof);
 		}
