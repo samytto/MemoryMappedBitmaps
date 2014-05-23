@@ -17,27 +17,32 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 
 import net.sourceforge.sizeof.SizeOf;
 
 import org.roaringbitmap.buffer.BufferFastAggregation;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.FastAggregation;
 import org.roaringbitmap.RoaringBitmap;
 
 
 public class Benchmark {
 
+	private static final int nbRepetitions = 100;
+	private static final long warmup_iterations = 100L * 1000L;
+	private static int careof=0;
+	private static ImmutableRoaringBitmap[] irbs = null;
+	private static ArrayList<ImmutableConciseSet> icss = null;
+	private static ImmutableRoaringBitmap irb = null;
+	private static ImmutableConciseSet ics = null;
+	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		try {						
-			String dataSources[] = {"census1881.csv","census-income.csv","uscensus2000.csv","weather_sept_85.csv","wikileaks-noquotes.csv"};
-			int nbRepetitions = 20;			
+			String dataSources[] = {"census1881.csv","census-income.csv","weather_sept_85.csv"};
+					
 			RealDataRetriever dataRetriever = new RealDataRetriever(args[0]);
 			int [][] datum = new int[200][];
 			for(int i=0; i<dataSources.length; i++) {
-				int careof = 0;
 				String dataSet = dataSources[i];
 				//************ Roaring part ****************
 			{
@@ -74,7 +79,7 @@ public class Benchmark {
                 }		
               //RAM space used in bytes
                 long sizeRAM = 0;
-                ImmutableRoaringBitmap[] irbs = new ImmutableRoaringBitmap[200];
+                irbs = new ImmutableRoaringBitmap[200];
                 int i_rb = 0;
 				for(int k=0; k < offsets.size()-1; k++) {
 					mbb.position((int)offsets.get(k).longValue());
@@ -87,51 +92,40 @@ public class Benchmark {
 				}
 				irbs = Arrays.copyOfRange(irbs, 0, i_rb);
 				//Disk space used in bytes
-				long sizeDisque = file.length();
+				long sizeDisk = file.length();
 				//Unions between 200 Roaring bitmaps
-				long unionTime = 0;
-				for(int rep=0; rep<nbRepetitions; rep++) {
-				ImmutableRoaringBitmap irb;
-				long bef = System.currentTimeMillis();
-				irb = BufferFastAggregation.or(irbs);
-				long aft = System.currentTimeMillis();
-				careof+=irb.getCardinality();
-				unionTime+=aft-bef;
-				}
-				unionTime/=nbRepetitions;
+				long unionTime = (long) test(new Launcher() {
+					@Override
+                    public void launch() {
+						irb = BufferFastAggregation.or(irbs);
+						careof+=irb.getCardinality(); 
+                    }
+				});
+				//Horizontal unions between 200 Roaring bitmaps
+				long horizUnionTime = (long) test(new Launcher() {
+					@Override
+                    public void launch() {
+						irb = BufferFastAggregation.horizontal_or(irbs);
+						careof+=irb.getCardinality(); 
+                    }
+				});
 				//Intersections between 200 Roaring bitmaps
-				long intersectTime = 0;
-				for(int rep=0; rep<nbRepetitions; rep++) {
-				ImmutableRoaringBitmap irb;				
-				long bef = System.currentTimeMillis();
-				irb = BufferFastAggregation.and(irbs);				
-				long aft = System.currentTimeMillis();
-				careof+=irb.getCardinality();
-				intersectTime+=aft-bef;
-				}
-				intersectTime/=nbRepetitions;
+				double intersectTime = test(new Launcher() {
+					@Override
+                    public void launch() {
+						irb = BufferFastAggregation.and(irbs);
+						careof+=irb.getCardinality(); 
+                    }
+				});
 				//Average time to retrieve set bits
-				long scanTime = 0;
-				for(int rep=0; rep<nbRepetitions; rep++) {
-				for(int k=0; k<irbs.length; k++){
-					ImmutableRoaringBitmap irb = irbs[k];//irbs.get(k);
-					org.roaringbitmap.IntIterator it = irb.getIntIterator();
-					long bef = System.currentTimeMillis();
-					while(it.hasNext())
-					 {
-						it.next();
-					 }
-					long aft = System.currentTimeMillis();
-					scanTime+=aft-bef;
-				}
-				}
-				scanTime/=nbRepetitions;
+				long scanTime = testScanRoaring();
 				System.out.println("***************************");
 				System.out.println("Roaring bitmap on "+dataSet+" dataset");
 				System.out.println("***************************");
-				System.out.println("RAM Size = "+sizeRAM+" bytes");
-				System.out.println("Disk Size = "+sizeDisque+" bytes");
+				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+(sizeRAM/200)+" bytes/bitmap)");
+				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+(sizeDisk/200)+" bytes/bitmap)");
 				System.out.println("Unions time = "+unionTime+" ms");
+				System.out.println("Horizontal unions time = "+horizUnionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
 				System.out.println(".ignore = "+careof);
@@ -156,7 +150,7 @@ public class Benchmark {
 				dos.close();                
                 //RAM storage in bytes
                 long sizeRAM = 0;
-                ArrayList<ImmutableConciseSet> icss = new ArrayList<ImmutableConciseSet>();
+                icss = new ArrayList<ImmutableConciseSet>();
                 RandomAccessFile memoryMappedFile = new RandomAccessFile(file, "r");
 				MappedByteBuffer mbb = memoryMappedFile.getChannel().
 										map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);
@@ -169,66 +163,38 @@ public class Benchmark {
 					sizeRAM += (SizeOf.deepSizeOf(ics));
 				}
 				//Disk storage in bytes
-				long sizeDisque = file.length();
+				long sizeDisk = file.length();
 				//Average time to compute unions between 200 ConciseSets
-				long unionTime = 0;
-				for(int rep=0; rep<nbRepetitions; rep++) {				
-				long bef = System.currentTimeMillis();
-				ImmutableConciseSet ics = ImmutableConciseSet.union(icss.iterator());							
-				long aft = System.currentTimeMillis();
-				unionTime+=aft-bef;
-				careof+=ics.size();	
-				}
-				unionTime/=nbRepetitions;
+				long unionTime = (long) test(new Launcher() {
+					@Override
+                    public void launch() {
+						ics = ImmutableConciseSet.union(icss.iterator());
+						careof+=ics.size(); 
+                    }
+				});
 				//Average time to compute intersects between 200 ConciseSets
-				long intersectTime = 0;
-				for(int rep=0; rep<nbRepetitions; rep++) {				
-				long bef = System.currentTimeMillis();
-				ImmutableConciseSet ics = ImmutableConciseSet.intersection(icss.iterator());
-				long aft = System.currentTimeMillis();
-				careof+=ics.size();
-				intersectTime+=aft-bef;
-				}
-				intersectTime/=nbRepetitions;
+				long intersectTime = (long) test(new Launcher() {
+					@Override
+                    public void launch() {
+						ics = ImmutableConciseSet.intersection(icss.iterator());
+						careof+=ics.size(); 
+                    }
+				});
 				//Average time to retrieve set bits
-				long scanTime = 0;
-				for(int rep=0; rep<nbRepetitions; rep++) {
-				for(int k=0; k<icss.size(); k++){
-					ImmutableConciseSet ics = icss.get(k);					
-					IntIterator it = ics.iterator();
-					long bef = System.currentTimeMillis();
-					while(it.hasNext())
-					 {
-						it.next();
-					 }
-					long aft = System.currentTimeMillis();
-					scanTime+=aft-bef;
-				}
-				}
-				scanTime/=nbRepetitions;
+				long scanTime = testScanConcise();
+				
 				System.out.println("***************************");
 				System.out.println("ConciseSet on "+dataSet+" dataset");
 				System.out.println("***************************");
-				System.out.println("RAM Size = "+sizeRAM+" bytes");
-				System.out.println("Disk Size = "+sizeDisque+" bytes");
+				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+(sizeRAM/200)+" bytes/bitmap)");
+				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+(sizeDisk/200)+" bytes/bitmap)");
 				System.out.println("Unions time = "+unionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
 				System.out.println(".ignore = "+careof);
 		}
 			}			
-		} catch (IOException e) {e.printStackTrace();}
-		
-	}
-	
-	static void SerializeConciseSet(ConciseSet cs, DataOutputStream dos) {	
-		int[] ints = cs.getWords();
-		for(int k=0; k<ints.length; k++)
-			try {
-				for(int j=0; j<4; j++)
-					dos.writeInt(ints[k]);
-				dos.flush();
-			} catch (IOException e) {e.printStackTrace();}		
+		} catch (IOException e) {e.printStackTrace();}		
 	}
 	
 	static ConciseSet toConcise(int[] dat) {
@@ -237,5 +203,114 @@ public class Benchmark {
                 ans.add(i);
         return ans;
 	}
+	
+	static double test(Launcher job) {
+        long jobTime, begin, end;
+        int i;
+        //Warming up the cache 
+        for(int j=0; j<warmup_iterations; j++) {
+                begin = System.currentTimeMillis();
+                for (i = 0; i < nbRepetitions; ++i) {
+                        job.launch();
+                }
+                end = System.currentTimeMillis();
+                jobTime = end - begin;
+        }
+        //We can start timings now 
+        begin = System.currentTimeMillis();
+        for (i = 0; i < nbRepetitions; ++i) {
+                job.launch();
+        }
+        end = System.currentTimeMillis();
+        jobTime = end - begin;
+        return (double)(jobTime) / (double)(nbRepetitions);
+	}
+	
+	static long testScanRoaring() {
+        long scanTime, begin, end;
+        int i, k;
+        org.roaringbitmap.IntIterator it;
+        //Warming up the cache 
+        for(int j=0; j<warmup_iterations; j++) {
+        	scanTime = 0;
+			for(i=0; i<nbRepetitions; i++) {
+				for(k=0; k<irbs.length; k++){
+					irb = irbs[k];
+					it = irb.getIntIterator();
+					begin = System.currentTimeMillis();
+					while(it.hasNext())
+					{
+						it.next();
+					}
+					end = System.currentTimeMillis();
+					scanTime+=end-begin;
+				}
+			}
+			scanTime/=nbRepetitions;
+        }
+        //We can start timings now 
+        scanTime = 0;
+		for(i=0; i<nbRepetitions; i++) {
+			for(k=0; k<irbs.length; k++) {
+				irb = irbs[k];
+				it = irb.getIntIterator();
+				begin = System.currentTimeMillis();
+				while(it.hasNext())
+				{
+					it.next();
+				}
+				end = System.currentTimeMillis();
+				scanTime+=end-begin;
+			}
+		}
+		scanTime/=nbRepetitions;
+        
+        return scanTime;
+	}
 
+	static long testScanConcise() {
+        long scanTime, begin, end;
+        int i, k;
+        IntIterator it;
+        //Warming up the cache 
+        for(int j=0; j<warmup_iterations; j++) {
+        	scanTime = 0;
+			for(i=0; i<nbRepetitions; i++) {
+				for(k=0; k<icss.size(); k++){
+					ics = icss.get(k);
+					it = ics.iterator();
+					begin = System.currentTimeMillis();
+					while(it.hasNext())
+					{
+						it.next();
+					}
+					end = System.currentTimeMillis();
+					scanTime+=end-begin;
+				}
+			}
+			scanTime/=nbRepetitions;
+        }
+        //We can start timings now 
+        scanTime = 0;
+		for(i=0; i<nbRepetitions; i++) {
+			for(k=0; k<icss.size(); k++){
+				ics = icss.get(k);
+				it = ics.iterator();
+				begin = System.currentTimeMillis();
+				while(it.hasNext())
+				{
+					it.next();
+				}
+				end = System.currentTimeMillis();
+				scanTime+=end-begin;
+			}
+		}
+		scanTime/=nbRepetitions;
+        
+        return scanTime;
+	}
+	
+	abstract static class Launcher {
+		public abstract void launch();
+	}
 }

@@ -84,13 +84,6 @@
     	<scope>system</scope>
     	<systemPath>${basedir}/lib/SizeOf.jar</systemPath>
 	</dependency>
-	<!-- <dependency>
-    	<artifactId>org.roaringbitmap</artifactId>
-    	<groupId>RoaringBitmap</groupId>
-     	<version>0.3.0</version>
-    	<scope>system</scope>
-    	<systemPath>${basedir}/lib/RoaringBitmap-0.3.0.jar</systemPath>
-	</dependency>  -->
   	<dependency>
   		<groupId>com.google.guava</groupId>
 		<artifactId>guava</artifactId>
@@ -118,7 +111,7 @@
   	<dependency>
         <groupId>org.roaringbitmap</groupId>
         <artifactId>RoaringBitmap</artifactId>
-        <version>0.3.2</version>
+        <version>0.3.4</version>
     </dependency> 
   	<dependency>
   		<groupId>com.google.collections</groupId>
