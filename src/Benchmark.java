@@ -2,7 +2,9 @@
  * (c) Samy Chambi, Daniel Lemire.
  * 
  */
-
+/**
+ * Benchmarks on real data. 
+ */
 import it.uniroma3.mat.extendedset.intset.ConciseSet;
 import it.uniroma3.mat.extendedset.intset.ImmutableConciseSet;
 import it.uniroma3.mat.extendedset.intset.IntSet.IntIterator;
@@ -28,7 +30,7 @@ import org.roaringbitmap.RoaringBitmap;
 public class Benchmark {
 
 	private static final int nbRepetitions = 100;
-	private static final long warmup_iterations = 100L * 1000L;
+	private static final long warmup_ms = 1000L;
 	private static int careof=0;
 	private static ImmutableRoaringBitmap[] irbs = null;
 	private static ArrayList<ImmutableConciseSet> icss = null;
@@ -206,16 +208,18 @@ public class Benchmark {
 	
 	static double test(Launcher job) {
         long jobTime, begin, end;
-        int i;
+        int i, repeat=1;
         //Warming up the cache 
-        for(int j=0; j<warmup_iterations; j++) {
-                begin = System.currentTimeMillis();
-                for (i = 0; i < nbRepetitions; ++i) {
-                        job.launch();
-                }
-                end = System.currentTimeMillis();
-                jobTime = end - begin;
-        }
+        do {
+            repeat *= 2;
+            begin = System.currentTimeMillis();
+            for (int r = 0; r < repeat; r++) {
+                    job.launch();
+            }
+            end = System.currentTimeMillis();
+            jobTime = (end - begin)/nbRepetitions;
+        } while (jobTime < warmup_ms);
+        
         //We can start timings now 
         begin = System.currentTimeMillis();
         for (i = 0; i < nbRepetitions; ++i) {
@@ -228,13 +232,14 @@ public class Benchmark {
 	
 	static long testScanRoaring() {
         long scanTime, begin, end;
-        int i, k;
+        int i, k, repeat=1;
         org.roaringbitmap.IntIterator it;
         //Warming up the cache 
-        for(int j=0; j<warmup_iterations; j++) {
-        	scanTime = 0;
-			for(i=0; i<nbRepetitions; i++) {
-				for(k=0; k<irbs.length; k++){
+        do {
+            repeat *= 2;
+            scanTime = 0;
+            for (int r = 0; r < repeat; r++) {
+            	for(k=0; k<irbs.length; k++){
 					irb = irbs[k];
 					it = irb.getIntIterator();
 					begin = System.currentTimeMillis();
@@ -245,9 +250,10 @@ public class Benchmark {
 					end = System.currentTimeMillis();
 					scanTime+=end-begin;
 				}
-			}
-			scanTime/=nbRepetitions;
-        }
+            }
+            scanTime/=nbRepetitions;
+        } while (scanTime < warmup_ms);
+        
         //We can start timings now 
         scanTime = 0;
 		for(i=0; i<nbRepetitions; i++) {
@@ -270,13 +276,14 @@ public class Benchmark {
 
 	static long testScanConcise() {
         long scanTime, begin, end;
-        int i, k;
+        int i, k, repeat=1;
         IntIterator it;
         //Warming up the cache 
-        for(int j=0; j<warmup_iterations; j++) {
-        	scanTime = 0;
-			for(i=0; i<nbRepetitions; i++) {
-				for(k=0; k<icss.size(); k++){
+        do {
+            repeat *= 2;
+            scanTime = 0;
+            for (int r = 0; r < repeat; r++) {
+            	for(k=0; k<icss.size(); k++){
 					ics = icss.get(k);
 					it = ics.iterator();
 					begin = System.currentTimeMillis();
@@ -287,9 +294,10 @@ public class Benchmark {
 					end = System.currentTimeMillis();
 					scanTime+=end-begin;
 				}
-			}
-			scanTime/=nbRepetitions;
-        }
+            }
+            scanTime/=nbRepetitions;
+        } while (scanTime < warmup_ms);
+        
         //We can start timings now 
         scanTime = 0;
 		for(i=0; i<nbRepetitions; i++) {
