@@ -38,8 +38,19 @@ public class Benchmark {
 	private static ImmutableConciseSet ics = null;
 	
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		try {						
+        boolean sizeOf = true;
+        try {
+                SizeOf.setMinSizeToLog(0);
+                SizeOf.skipStaticField(true);
+                SizeOf.deepSizeOf(args);
+        } catch (IllegalStateException e) {
+                sizeOf = false;
+                System.out
+                        .println("# disabling sizeOf, run  -javaagent:lib/SizeOf.jar or equiv. to enable");
+
+        }       
+
+	    try {						
 			String dataSources[] = {"census1881.csv","census-income.csv","weather_sept_85.csv"};
 					
 			RealDataRetriever dataRetriever = new RealDataRetriever(args[0]);
@@ -68,17 +79,6 @@ public class Benchmark {
 				RandomAccessFile memoryMappedFile = new RandomAccessFile(file, "r");
 				MappedByteBuffer mbb = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);
 			
-				boolean sizeOf = true;
-                try {
-                        SizeOf.setMinSizeToLog(0);
-                        SizeOf.skipStaticField(true);
-                        SizeOf.deepSizeOf(args);
-                } catch (IllegalStateException e) {
-                        sizeOf = false;
-                        System.out
-                                .println("# disabling sizeOf, run  -javaagent:lib/SizeOf.jar or equiv. to enable");
-
-                }		
               //RAM space used in bytes
                 long sizeRAM = 0;
                 irbs = new ImmutableRoaringBitmap[200];
@@ -90,7 +90,7 @@ public class Benchmark {
 					ImmutableRoaringBitmap irb = new ImmutableRoaringBitmap(bb);
 					irbs[i_rb] = irb;
 					i_rb++;
-					sizeRAM += (SizeOf.deepSizeOf(irb));
+					if(sizeOf) sizeRAM += (SizeOf.deepSizeOf(irb));
 				}
 				irbs = Arrays.copyOfRange(irbs, 0, i_rb);
 				//Disk space used in bytes
@@ -131,6 +131,9 @@ public class Benchmark {
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
 				System.out.println(".ignore = "+careof);
+				mbb = null;
+				memoryMappedFile.close();
+				file.delete();
 			}
 				//***************** ConciseSet part **********************************
 			{	
@@ -162,7 +165,7 @@ public class Benchmark {
 					bb.limit((int) (offsets.get(k+1)-offsets.get(k)));
 					ImmutableConciseSet ics = new ImmutableConciseSet(bb);
 					icss.add(ics);
-					sizeRAM += (SizeOf.deepSizeOf(ics));
+					if(sizeOf)	sizeRAM += (SizeOf.deepSizeOf(ics));
 				}
 				//Disk storage in bytes
 				long sizeDisk = file.length();
@@ -194,6 +197,9 @@ public class Benchmark {
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
 				System.out.println(".ignore = "+careof);
+				mbb = null;
+                memoryMappedFile.close();
+                file.delete();
 		}
 			}			
 		} catch (IOException e) {e.printStackTrace();}		
