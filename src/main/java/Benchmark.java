@@ -95,14 +95,6 @@ public class Benchmark {
 				irbs = Arrays.copyOfRange(irbs, 0, i_rb);
 				//Disk space used in bytes
 				long sizeDisk = file.length();
-				//Unions between 200 Roaring bitmaps
-				long unionTime = (long) test(new Launcher() {
-					@Override
-                    public void launch() {
-						irb = BufferFastAggregation.or(irbs);
-						careof+=irb.getCardinality(); 
-                    }
-				});
 				//Horizontal unions between 200 Roaring bitmaps
 				long horizUnionTime = (long) test(new Launcher() {
 					@Override
@@ -126,7 +118,6 @@ public class Benchmark {
 				System.out.println("***************************");
 				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+(sizeRAM/200)+" bytes/bitmap)");
 				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+(sizeDisk/200)+" bytes/bitmap)");
-				System.out.println("Unions time = "+unionTime+" ms");
 				System.out.println("Horizontal unions time = "+horizUnionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
