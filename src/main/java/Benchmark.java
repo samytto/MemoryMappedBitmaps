@@ -29,8 +29,8 @@ import org.roaringbitmap.RoaringBitmap;
 
 public class Benchmark {
 
-	private static final int nbRepetitions = 1;
-	private static final long warmup_ms = 0L;
+	private static final int nbRepetitions = 100;
+	private static final long warmup_ms = 1000L;
 	private static int careof=0;
 	private static ImmutableRoaringBitmap[] irbs = null;
 	private static ArrayList<ImmutableConciseSet> icss = null;
