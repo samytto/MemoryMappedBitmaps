@@ -61,18 +61,8 @@ public class TestMemoryMappedBitmaps {
                 .println("Testing the serialization gives the same results...");
         ArrayList<ImmutableConciseSet> x = getConcise();
         ImmutableRoaringBitmap[] y = getRoaring();
-        System.out.println(x.size() + " " + y.length);
-
         Assert.assertEquals(x.size(), y.length);
         for (int k = 0; k < y.length; ++k) {
-            System.out.println("Bitmap 1, true cardinality is  "
-                    + datum[k].length + " roaring card is "
-                    + y[k].getCardinality() + " concise cardinality is "
-                    + toArray(x.get(k)).length);
-            System.out.println("Roaring is correct: "
-                    + Arrays.equals(datum[k], y[k].toArray()));
-            System.out.println("Concise is correct: "
-                    + Arrays.equals(datum[k], toArray(x.get(k))));
             Assert.assertArrayEquals(y[k].toArray(), datum[k]);
             Assert.assertArrayEquals(y[k].toArray(), toArray(x.get(k)));
         }
@@ -138,40 +128,50 @@ public class TestMemoryMappedBitmaps {
     public static void initFiles() throws IOException {
         System.out
                 .println("Setting up memory-mapped file. (Can take some time.)");
-        String dataSources[] = { "census1881.csv" };// we verify with just one
-                                                    // data set
+        String dataSources = "census1881.csv";// we verify with just one
+                                              // data set
 
         RealDataRetriever dataRetriever = new RealDataRetriever(location);
         datum = new int[200][];
-        for (int i = 0; i < dataSources.length; i++) {
-            System.out.println("Building the roaring bitmaps...");
-            String dataSet = dataSources[i];
-            // ************ Roaring part ****************
-            {
-                roaringfile = File.createTempFile("roarings", "bin");
-                roaringfile.deleteOnExit();
-                final FileOutputStream fos = new FileOutputStream(roaringfile);
-                final DataOutputStream dos = new DataOutputStream(fos);
-                roaringoffsets = new ArrayList<Long>();
-                // Building 200 RoaringBitmaps
-                for (int j = 0; j < 200; j++) {
-                    int[] data = dataRetriever.fetchBitPositions(dataSet, j);
-                    datum[j] = data.clone();
-                    RoaringBitmap rb = RoaringBitmap.bitmapOf(data);
-                    rb.trim();
-                    if (!Arrays.equals(rb.toArray(), datum[j]))
-                        throw new RuntimeException("bug");
-                    roaringoffsets.add(fos.getChannel().position());
-                    rb.serialize(dos);
-                    dos.flush();
-                }
-                long lastOffset = fos.getChannel().position();
-                dos.close();
-                roaringmemoryMappedFile = new RandomAccessFile(roaringfile, "r");
-                roaringmbb = roaringmemoryMappedFile.getChannel().map(
-                        FileChannel.MapMode.READ_ONLY, 0, lastOffset);
-            }
+
+        String dataSet = dataSources;
+        System.out.println("Recovering the data...");
+
+        for (int j = 0; j < 200; j++) {
+            int[] data = dataRetriever.fetchBitPositions(dataSet, j);
+            datum[j] = data.clone();
         }
+        System.out.println("Building the roaring bitmaps...");
+        long aft, bef;
+        bef = System.currentTimeMillis();
+
+        // ************ Roaring part ****************
+        {
+            roaringfile = File.createTempFile("roarings", "bin");
+            roaringfile.deleteOnExit();
+            final FileOutputStream fos = new FileOutputStream(roaringfile);
+            final DataOutputStream dos = new DataOutputStream(fos);
+            roaringoffsets = new ArrayList<Long>();
+            // Building 200 RoaringBitmaps
+            for (int j = 0; j < 200; j++) {
+                RoaringBitmap rb = RoaringBitmap.bitmapOf(datum[j]);
+                rb.trim();
+                if (!Arrays.equals(rb.toArray(), datum[j]))
+                    throw new RuntimeException("bug");
+                roaringoffsets.add(fos.getChannel().position());
+                rb.serialize(dos);
+                dos.flush();
+            }
+            long lastOffset = fos.getChannel().position();
+            dos.close();
+            roaringmemoryMappedFile = new RandomAccessFile(roaringfile, "r");
+            roaringmbb = roaringmemoryMappedFile.getChannel().map(
+                    FileChannel.MapMode.READ_ONLY, 0, lastOffset);
+        }
+        aft = System.currentTimeMillis();
+        System.out.println("It took " + (aft - bef) + " ms");
+        bef = System.currentTimeMillis();
+
         {
             System.out.println("Building the concise bitmaps...");
             concisefile = File.createTempFile("conciseSets", "bin");
@@ -195,14 +195,11 @@ public class TestMemoryMappedBitmaps {
             concisememoryMappedFile = new RandomAccessFile(concisefile, "r");
             concisembb = concisememoryMappedFile.getChannel().map(
                     FileChannel.MapMode.READ_ONLY, 0, lastOffset);
-            for (int k = 0; k < conciseoffsets.size() - 1; k++) {
-                concisembb.position((int) conciseoffsets.get(k).longValue());
-                final ByteBuffer bb = concisembb.slice();
-                bb.limit((int) (conciseoffsets.get(k + 1) - conciseoffsets
-                        .get(k)));
 
-            }
         }
+        aft = System.currentTimeMillis();
+        System.out.println("It took " + (aft - bef) + " ms");
+
     }
 
     static ConciseSet toConcise(int[] dat) {
