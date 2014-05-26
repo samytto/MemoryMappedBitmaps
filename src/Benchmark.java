@@ -19,6 +19,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 import net.sourceforge.sizeof.SizeOf;
 
@@ -41,6 +42,14 @@ public class Benchmark {
 		// TODO Auto-generated method stub
 		try {						
 			String dataSources[] = {"census1881.csv","census-income.csv","weather_sept_85.csv"};
+			
+			System.out.println("\nResults interpretation :: \n"
+            		+ "RAM Size = the required RAM space, in KB and bytes/bitmap, to store the 200 bitmaps\n"
+            		+ "Disk Size = the required disk space, in MB and KB/bitmap, to store the 200 serialized bitmaps\n"
+            		+ "Unions time = average time in ms to compute the union of 200 bitmaps\n"
+            		+ "Horizontal unions time = average time in ms to compute the horizontal union of 200 bitmaps\n"
+            		+ "Intersections time = average time in ms to compute the intersection of 200 bitmaps\n"
+            		+ "Scans time = average time in ms to scan the 200 bitmaps\n\n");
 					
 			RealDataRetriever dataRetriever = new RealDataRetriever(args[0]);
 			int [][] datum = new int[200][];
@@ -56,7 +65,7 @@ public class Benchmark {
 				//Building 200 RoaringBitmaps 
 				for (int j=0; j<200; j++) {					
 					int[] data = dataRetriever.fetchBitPositions(dataSet, j);
-					datum[j] = data.clone();
+					datum[j] = data;
 					RoaringBitmap rb = RoaringBitmap.bitmapOf(data);
 					rb.trim();
 					offsets.add(fos.getChannel().position());
@@ -78,22 +87,23 @@ public class Benchmark {
                         System.out
                                 .println("# disabling sizeOf, run  -javaagent:lib/SizeOf.jar or equiv. to enable");
 
-                }		
-              //RAM space used in bytes
+                }
+              //RAM storage
                 long sizeRAM = 0;
                 irbs = new ImmutableRoaringBitmap[200];
                 int i_rb = 0;
-				for(int k=0; k < offsets.size()-1; k++) {
+				for(int k=0; k < offsets.size(); k++) {
 					mbb.position((int)offsets.get(k).longValue());
 					final ByteBuffer bb = mbb.slice(); 
-					bb.limit((int) (offsets.get(k+1)-offsets.get(k)));
+					long offsetLimit = k < 199 ? offsets.get(k+1) : lastOffset;
+					bb.limit((int) (offsetLimit-offsets.get(k)));
 					ImmutableRoaringBitmap irb = new ImmutableRoaringBitmap(bb);
 					irbs[i_rb] = irb;
 					i_rb++;
 					sizeRAM += (SizeOf.deepSizeOf(irb));
 				}
 				irbs = Arrays.copyOfRange(irbs, 0, i_rb);
-				//Disk space used in bytes
+				//Disk storage
 				long sizeDisk = file.length();
 				//Unions between 200 Roaring bitmaps
 				long unionTime = (long) test(new Launcher() {
@@ -124,8 +134,8 @@ public class Benchmark {
 				System.out.println("***************************");
 				System.out.println("Roaring bitmap on "+dataSet+" dataset");
 				System.out.println("***************************");
-				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+(sizeRAM/200)+" bytes/bitmap)");
-				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+(sizeDisk/200)+" bytes/bitmap)");
+				System.out.printf("RAM Size = %4.2f KB (%4.2f bytes/bitmap)\n", (float)sizeRAM/1024.0, (float)sizeRAM/200.0);
+				System.out.printf("Disk Size = %4.2f MB (%4.2f  KB/bitmap))\n", (float)sizeDisk/(1024.0*1024.0), ((float)sizeDisk/200.0)/1024.0);
 				System.out.println("Unions time = "+unionTime+" ms");
 				System.out.println("Horizontal unions time = "+horizUnionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
@@ -150,21 +160,22 @@ public class Benchmark {
 				}
 				long lastOffset = fos.getChannel().position();
 				dos.close();                
-                //RAM storage in bytes
+                //RAM storage
                 long sizeRAM = 0;
                 icss = new ArrayList<ImmutableConciseSet>();
                 RandomAccessFile memoryMappedFile = new RandomAccessFile(file, "r");
 				MappedByteBuffer mbb = memoryMappedFile.getChannel().
 										map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);
-				for(int k=0; k < offsets.size()-1; k++) {
+				for(int k=0; k < offsets.size(); k++) {
 					mbb.position((int)offsets.get(k).longValue());
 					final ByteBuffer bb = mbb.slice();
-					bb.limit((int) (offsets.get(k+1)-offsets.get(k)));
+					long offsetLimit = k < 199 ? offsets.get(k+1) : lastOffset;
+					bb.limit((int) (offsetLimit-offsets.get(k)));
 					ImmutableConciseSet ics = new ImmutableConciseSet(bb);
 					icss.add(ics);
 					sizeRAM += (SizeOf.deepSizeOf(ics));
 				}
-				//Disk storage in bytes
+				//Disk storage
 				long sizeDisk = file.length();
 				//Average time to compute unions between 200 ConciseSets
 				long unionTime = (long) test(new Launcher() {
@@ -183,13 +194,12 @@ public class Benchmark {
                     }
 				});
 				//Average time to retrieve set bits
-				long scanTime = testScanConcise();
-				
+				long scanTime = testScanConcise();				
 				System.out.println("***************************");
 				System.out.println("ConciseSet on "+dataSet+" dataset");
 				System.out.println("***************************");
-				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+(sizeRAM/200)+" bytes/bitmap)");
-				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+(sizeDisk/200)+" bytes/bitmap)");
+				System.out.printf("RAM Size = %4.2f KB (%4.2f bytes/bitmap)\n", (float)sizeRAM/1024.0, (float)sizeRAM/200.0);
+				System.out.printf("Disk Size = %4.2f MB (%4.2f  KB/bitmap))\n", (float)sizeDisk/(1024.0*1024.0), ((float)sizeDisk/200.0)/1024.0);
 				System.out.println("Unions time = "+unionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
@@ -222,7 +232,7 @@ public class Benchmark {
         
         //We can start timings now 
         begin = System.currentTimeMillis();
-        for (i = 0; i < nbRepetitions; ++i) {
+        for (i = 0; i < nbRepetitions; ++i){
                 job.launch();
         }
         end = System.currentTimeMillis();
