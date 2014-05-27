@@ -30,8 +30,8 @@ import org.roaringbitmap.RoaringBitmap;
 
 public class Benchmark {
 
-	private static final int nbRepetitions = 100;
-	private static final long warmup_ms = 1000L;
+	private static final int nbRepetitions = 10;//100;
+	private static final long warmup_ms = 5;//1000L;
 	private static int careof=0;
 	private static ImmutableRoaringBitmap[] irbs = null;
 	private static ArrayList<ImmutableConciseSet> icss = null;
@@ -127,7 +127,7 @@ public class Benchmark {
 				System.out.println("Roaring bitmap on "+dataSet+" dataset");
 				System.out.println("***************************");
 				System.out.printf("RAM Size = %4.2f KB (%4.2f bytes/bitmap)\n", (float)sizeRAM/1024.0, (float)sizeRAM/200.0);
-				System.out.printf("Disk Size = %4.2f MB (%4.2f  KB/bitmap))\n", (float)sizeDisk/(1024.0*1024.0), ((float)sizeDisk/200.0)/1024.0);
+				System.out.printf("Disk Size = %4.2f MB (%4.2f  KB/bitmap)\n", (float)sizeDisk/(1024.0*1024.0), ((float)sizeDisk/200.0)/1024.0);
 				System.out.println("Horizontal unions time = "+horizUnionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
@@ -193,7 +193,7 @@ public class Benchmark {
 				System.out.println("ConciseSet on "+dataSet+" dataset");
 				System.out.println("***************************");
 				System.out.printf("RAM Size = %4.2f KB (%4.2f bytes/bitmap)\n", (float)sizeRAM/1024.0, (float)sizeRAM/200.0);
-				System.out.printf("Disk Size = %4.2f MB (%4.2f  KB/bitmap))\n", (float)sizeDisk/(1024.0*1024.0), ((float)sizeDisk/200.0)/1024.0);
+				System.out.printf("Disk Size = %4.2f MB (%4.2f  KB/bitmap)\n", (float)sizeDisk/(1024.0*1024.0), ((float)sizeDisk/200.0)/1024.0);
 				System.out.println("Unions time = "+unionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
