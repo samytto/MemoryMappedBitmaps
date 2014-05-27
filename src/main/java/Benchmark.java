@@ -88,22 +88,7 @@ public class Benchmark {
 				RandomAccessFile memoryMappedFile = new RandomAccessFile(file, "r");
 				MappedByteBuffer mbb = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);
 			
-<<<<<<< HEAD:src/Benchmark.java
-				boolean sizeOf = true;
-                try {
-                        SizeOf.setMinSizeToLog(0);
-                        SizeOf.skipStaticField(true);
-                        SizeOf.deepSizeOf(args);
-                } catch (IllegalStateException e) {
-                        sizeOf = false;
-                        System.out
-                                .println("# disabling sizeOf, run  -javaagent:lib/SizeOf.jar or equiv. to enable");
-
-                }
               //RAM storage
-=======
-              //RAM space used in bytes
->>>>>>> 31144775dd9631f84bdd4b5b1c018f8d2bc9a954:src/main/java/Benchmark.java
                 long sizeRAM = 0;
                 irbs = new ImmutableRoaringBitmap[200];
                 int i_rb = 0;
@@ -141,14 +126,8 @@ public class Benchmark {
 				System.out.println("***************************");
 				System.out.println("Roaring bitmap on "+dataSet+" dataset");
 				System.out.println("***************************");
-<<<<<<< HEAD:src/Benchmark.java
 				System.out.printf("RAM Size = %4.2f KB (%4.2f bytes/bitmap)\n", (float)sizeRAM/1024.0, (float)sizeRAM/200.0);
 				System.out.printf("Disk Size = %4.2f MB (%4.2f  KB/bitmap))\n", (float)sizeDisk/(1024.0*1024.0), ((float)sizeDisk/200.0)/1024.0);
-				System.out.println("Unions time = "+unionTime+" ms");
-=======
-				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+(sizeRAM/200)+" bytes/bitmap)");
-				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+(sizeDisk/200)+" bytes/bitmap)");
->>>>>>> 31144775dd9631f84bdd4b5b1c018f8d2bc9a954:src/main/java/Benchmark.java
 				System.out.println("Horizontal unions time = "+horizUnionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
