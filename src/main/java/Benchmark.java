@@ -30,8 +30,8 @@ import org.roaringbitmap.RoaringBitmap;
 
 public class Benchmark {
 
-	private static final int nbRepetitions = 10;//100;
-	private static final long warmup_ms = 5;//1000L;
+	private static final int nbRepetitions = 100;
+	private static final long warmup_ms = 1000L;
 	private static int careof=0;
 	private static ImmutableRoaringBitmap[] irbs = null;
 	private static ArrayList<ImmutableConciseSet> icss = null;
@@ -86,8 +86,7 @@ public class Benchmark {
 				long lastOffset = fos.getChannel().position();
 				dos.close();
 				RandomAccessFile memoryMappedFile = new RandomAccessFile(file, "r");
-				MappedByteBuffer mbb = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);
-			
+				MappedByteBuffer mbb = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);			
               //RAM storage
                 long sizeRAM = 0;
                 irbs = new ImmutableRoaringBitmap[200];
