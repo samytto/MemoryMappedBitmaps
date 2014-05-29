@@ -57,7 +57,6 @@ public class Benchmark {
 			System.out.println("\nResults interpretation :: \n"
             		+ "RAM Size = the required RAM space, in KB and bytes/bitmap, to store the 200 bitmaps\n"
             		+ "Disk Size = the required disk space, in MB and KB/bitmap, to store the 200 serialized bitmaps\n"
-            		+ "Unions time = average time in ms to compute the union of 200 bitmaps\n"
             		+ "Horizontal unions time = average time in ms to compute the horizontal union of 200 bitmaps\n"
             		+ "Intersections time = average time in ms to compute the intersection of 200 bitmaps\n"
             		+ "Scans time = average time in ms to scan the 200 bitmaps\n\n");
