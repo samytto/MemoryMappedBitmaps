@@ -1,7 +1,7 @@
 MemoryMappedBitmaps
 ===================
 
-Real data experiments that compare performances of Roaring bitmap 2.0 and ConciseSet 2.2 using memory mapped files.
+Real data experiments that compare performances of Roaring bitmap and ConciseSet 2.2 using memory mapped files.
 
 Usage 
 ===================
