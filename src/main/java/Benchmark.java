@@ -48,7 +48,6 @@ public class Benchmark {
                 sizeOf = false;
                 System.out
                         .println("# disabling sizeOf, run  -javaagent:lib/SizeOf.jar or equiv. to enable");
-
         }       
 
 	    try {						
