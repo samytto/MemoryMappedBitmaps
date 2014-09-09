@@ -94,7 +94,7 @@ public class Benchmark {
 				//Disk storage
 				long sizeDisk = file.length();
 				//Horizontal unions between 200 Roaring bitmaps
-				long horizUnionTime = test(new Launcher() {
+				double horizUnionTime = test(new Launcher() {
 					@Override
                     public void launch() {
 						irb = BufferFastAggregation.horizontal_or(irbs);
