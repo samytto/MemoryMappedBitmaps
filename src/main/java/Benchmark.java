@@ -101,7 +101,7 @@ public class Benchmark {
 						careof+=irb.getCardinality(); 
                     }
 				});
-*/
+
 				//Intersections between 200 Roaring bitmaps
 				double intersectTime = test(new Launcher() {
 					@Override
@@ -110,7 +110,7 @@ public class Benchmark {
 						careof+=irb.getCardinality(); 
                     }
 				});
-*/
+
 				//Average time to retrieve set bits
 				long scanTime = testScanRoaring();
 				System.out.println("***************************");
@@ -170,7 +170,7 @@ public class Benchmark {
 						careof+=ics.size(); 
                     }
 				});
-*/
+
 				//Average time to compute intersects between 200 ConciseSets
 				long intersectTime = (long) test(new Launcher() {
 					@Override
@@ -179,7 +179,7 @@ public class Benchmark {
 						careof+=ics.size(); 
                     }
 				});
-*/
+
 				//Average time to retrieve set bits
 				long scanTime = testScanConcise();
 				System.out.println("***************************");
