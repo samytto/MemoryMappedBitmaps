@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
-import net.sourceforge.sizeof.SizeOf;
+import com.carrotsearch.sizeof.RamUsageEstimator;
 
 import org.roaringbitmap.buffer.BufferFastAggregation;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
@@ -39,7 +39,7 @@ public class Benchmark {
 	private static ImmutableConciseSet ics = null;
 	
 	public static void main(String[] args) {
-        boolean sizeOf = true;
+        /*boolean sizeOf = true;
         try {
                 SizeOf.setMinSizeToLog(0);
                 SizeOf.skipStaticField(true);
@@ -48,7 +48,7 @@ public class Benchmark {
                 sizeOf = false;
                 System.out
                         .println("# disabling sizeOf, run  -javaagent:lib/SizeOf.jar or equiv. to enable");
-        }       
+        }*/       
 
 	    try {						
 			String dataSources[] = {"census1881.csv","census-income.csv","weather_sept_85.csv"};
@@ -97,29 +97,31 @@ public class Benchmark {
 					ImmutableRoaringBitmap irb = new ImmutableRoaringBitmap(bb);
 					irbs[i_rb] = irb;
 					i_rb++;
-					if(sizeOf) sizeRAM += (SizeOf.deepSizeOf(irb));
+					//if(sizeOf) 
+					sizeRAM += RamUsageEstimator.sizeOf(irb);
+					//System.out.println("Roaringbuffer = "+irb.arrayBufferMemoryUsage());
 				}
 				irbs = Arrays.copyOfRange(irbs, 0, i_rb);
 				//Disk storage
 				long sizeDisk = file.length();
 				//Horizontal unions between 200 Roaring bitmaps
-				long horizUnionTime = (long) test(new Launcher() {
+				long horizUnionTime = (long)0;/* test(new Launcher() {
 					@Override
                     public void launch() {
 						irb = BufferFastAggregation.horizontal_or(irbs);
 						careof+=irb.getCardinality(); 
                     }
-				});
+				});*/
 				//Intersections between 200 Roaring bitmaps
-				double intersectTime = test(new Launcher() {
+				double intersectTime = 0;/*test(new Launcher() {
 					@Override
                     public void launch() {
 						irb = BufferFastAggregation.and(irbs);
 						careof+=irb.getCardinality(); 
                     }
-				});
+				});*/
 				//Average time to retrieve set bits
-				long scanTime = testScanRoaring();
+				long scanTime = 0;//testScanRoaring();
 				System.out.println("***************************");
 				System.out.println("Roaring bitmap on "+dataSet+" dataset");
 				System.out.println("***************************");
@@ -164,28 +166,30 @@ public class Benchmark {
 					bb.limit((int) (offsetLimit-offsets.get(k)));
 					ImmutableConciseSet ics = new ImmutableConciseSet(bb);
 					icss.add(ics);
-					if(sizeOf)	sizeRAM += (SizeOf.deepSizeOf(ics));
+					//if(sizeOf)	
+						sizeRAM += RamUsageEstimator.sizeOf(ics);
+					//System.out.println("ConciseSet = "+ics.bufferMemoryUsage());
 				}
 				//Disk storage
 				long sizeDisk = file.length();
 				//Average time to compute unions between 200 ConciseSets
-				long unionTime = (long) test(new Launcher() {
+				long unionTime = 0;/*(long) test(new Launcher() {
 					@Override
                     public void launch() {
 						ics = ImmutableConciseSet.union(icss.iterator());
 						careof+=ics.size(); 
                     }
-				});
+				});*/
 				//Average time to compute intersects between 200 ConciseSets
-				long intersectTime = (long) test(new Launcher() {
+				long intersectTime = 0;/*(long) test(new Launcher() {
 					@Override
                     public void launch() {
 						ics = ImmutableConciseSet.intersection(icss.iterator());
 						careof+=ics.size(); 
                     }
-				});
+				});*/
 				//Average time to retrieve set bits
-				long scanTime = testScanConcise();				
+				long scanTime = 0;//testScanConcise();				
 				System.out.println("***************************");
 				System.out.println("ConciseSet on "+dataSet+" dataset");
 				System.out.println("***************************");
