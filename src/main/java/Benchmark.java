@@ -1,5 +1,5 @@
 /*
- * (c) Samy Chambi, Daniel Lemire.
+ * (c) Samy Chambi, Daniel Lemire, Owen Kaser.
  * 
  */
 /**
@@ -42,13 +42,15 @@ public class Benchmark {
         boolean sizeOf = true;
         try {
                 SizeOf.setMinSizeToLog(0);
-                SizeOf.skipStaticField(true);
+                SizeOf.skipStaticField(false);
+                SizeOf.skipFinalField(false); 
+                SizeOf.skipFlyweightObject(false);
                 SizeOf.deepSizeOf(args);
         } catch (IllegalStateException e) {
                 sizeOf = false;
                 System.out
                         .println("# disabling sizeOf, run  -javaagent:lib/SizeOf.jar or equiv. to enable");
-        }       
+        	}       
 
 	    try {						
 			String dataSources[] = {"census1881.csv","census-income.csv","weather_sept_85.csv"};
@@ -61,7 +63,7 @@ public class Benchmark {
             		+ "Scans time = average time in ms to scan the 200 bitmaps\n\n");
 					
 			RealDataRetriever dataRetriever = new RealDataRetriever(args[0]);
-			int [][] datum = new int[200][];
+			int [][] datum = new int[200][];//Once filled, the same data will be used for Roaring and Concise 
 			for(int i=0; i<dataSources.length; i++) {
 				String dataSet = dataSources[i];
 				//************ Roaring part ****************
@@ -85,7 +87,7 @@ public class Benchmark {
 				dos.close();
 				RandomAccessFile memoryMappedFile = new RandomAccessFile(file, "r");
 				MappedByteBuffer mbb = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);			
-              //RAM storage
+				//RAM storage
                 long sizeRAM = 0;
                 irbs = new ImmutableRoaringBitmap[200];
                 int i_rb = 0;
@@ -98,6 +100,7 @@ public class Benchmark {
 					irbs[i_rb] = irb;
 					i_rb++;
 					if(sizeOf) sizeRAM += (SizeOf.deepSizeOf(irb));
+					
 				}
 				irbs = Arrays.copyOfRange(irbs, 0, i_rb);
 				//Disk storage
@@ -117,7 +120,7 @@ public class Benchmark {
 						irb = BufferFastAggregation.and(irbs);
 						careof+=irb.getCardinality(); 
                     }
-				});
+				});				
 				//Average time to retrieve set bits
 				long scanTime = testScanRoaring();
 				System.out.println("***************************");

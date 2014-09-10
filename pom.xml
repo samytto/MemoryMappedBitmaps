@@ -80,7 +80,7 @@
 	</dependencyManagement>
   <dependencies>
   	<dependency>
-    	<artifactId>ConciseSet</artifactId>
+    	<!--  --><artifactId>ConciseSet</artifactId>
     	<groupId>it.uniroma3.mat.extendedset.intset</groupId>
      	<version>2.2.0</version>
     	<scope>system</scope>
