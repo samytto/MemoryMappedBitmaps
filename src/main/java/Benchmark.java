@@ -45,7 +45,7 @@ public class Benchmark {
             SizeOf.skipFinalField(false);
             SizeOf.skipFlyweightObject(false);
             SizeOf.deepSizeOf(args);
-            SizeOf.turnOnDebug();
+            //SizeOf.turnOnDebug();
         } catch (IllegalStateException e) {
             sizeOf = false;
             System.out
