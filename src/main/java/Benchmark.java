@@ -19,14 +19,12 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Random;
 
 import net.sourceforge.sizeof.SizeOf;
 
 import org.roaringbitmap.buffer.BufferFastAggregation;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
-import org.roaringbitmap.RoaringBitmap;
 
 
 public class Benchmark {
