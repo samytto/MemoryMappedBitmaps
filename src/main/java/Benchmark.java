@@ -81,14 +81,17 @@ public class Benchmark {
 					final MutableRoaringBitmap rb = MutableRoaringBitmap.bitmapOf(data);
 					rb.trim();
 					//Measuring the serialization's average time
-					serializationTime += (long) test(new Launcher() {
-						@Override
-						public void launch() {
+					long time=0, cpt=0, repeat = 10000;
+					while(cpt++<repeat){
 						try {
-								serialzeRoaring(rb);
-							} catch (IOException e) {e.printStackTrace();}
+							long bef = System.nanoTime();
+								ByteBuffer bb = serialzeRoaring(rb);
+								careof+=bb.capacity();
+							long aft = System.nanoTime();
+							time += aft-bef;
+						} catch (IOException e) {e.printStackTrace();}
 						}
-					});
+					serializationTime+= time/repeat;
 					offsets.add(fos.getChannel().position());
 					rb.serialize(dos);
 				}
@@ -139,7 +142,7 @@ public class Benchmark {
 				System.out.println("***************************");
 				System.out.printf("RAM Size = %4.2f KB (%4.2f bytes/bitmap)\n", (float)sizeRAM/1024.0, (float)sizeRAM/200.0);
 				System.out.printf("Disk Size = %4.2f MB (%4.2f  KB/bitmap)\n", (float)sizeDisk/(1024.0*1024.0), ((float)sizeDisk/200.0)/1024.0);
-				System.out.println("Serialization time = "+(serializationTime/200)+" ms/bitmap");
+				System.out.println("Serialization time = "+((serializationTime/200)/1000)+" ms/bitmap");
 				System.out.println("Horizontal unions time = "+horizUnionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
@@ -162,14 +165,17 @@ public class Benchmark {
 					offsets.add(fos.getChannel().position());
 					final ImmutableConciseSet ics = ImmutableConciseSet.newImmutableFromMutable(cs);
 					//Measuring average time to serialize into memory
-					serializationTime += (long) test(new Launcher() {
-						@Override
-						public void launch() {
+					long time=0, cpt=0, repeat = 10000;
+					while(cpt++<repeat) {
 						try {
-								serializeICS(ics);
-							} catch (IOException e) {e.printStackTrace();}
-						}
-					});
+							long bef = System.nanoTime();
+								ByteBuffer bb = serializeICS(ics);
+								careof+=bb.capacity();
+							long aft = System.nanoTime();
+							time += aft-bef;
+						} catch (IOException e) {e.printStackTrace();}
+					}
+					serializationTime+= time/repeat;
 					byte[] ICS = ics.toBytes();
 					dos.write(ICS);
 					dos.flush();
@@ -217,7 +223,7 @@ public class Benchmark {
 				System.out.println("***************************");
 				System.out.printf("RAM Size = %4.2f KB (%4.2f bytes/bitmap)\n", (float)sizeRAM/1024.0, (float)sizeRAM/200.0);
 				System.out.printf("Disk Size = %4.2f MB (%4.2f  KB/bitmap)\n", (float)sizeDisk/(1024.0*1024.0), ((float)sizeDisk/200.0)/1024.0);
-				System.out.println("Serialization time = "+(serializationTime/200)+" ms/bitmap");
+				System.out.println("Serialization time = "+(serializationTime/200)/1000+" ms/bitmap");
 				System.out.println("Unions time = "+unionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
@@ -238,9 +244,9 @@ public class Benchmark {
 	}
 	
 	@SuppressWarnings("resource")
-	static void serialzeRoaring(MutableRoaringBitmap mrb) throws IOException{
+	static ByteBuffer serialzeRoaring(MutableRoaringBitmap mrb) throws IOException{
 		ByteBuffer outbb = ByteBuffer.allocate(mrb.serializedSizeInBytes());
-		mrb.serialize(new DataOutputStream(new OutputStream(){
+		DataOutputStream dos = new DataOutputStream(new OutputStream(){
             ByteBuffer mBB;
             OutputStream init(ByteBuffer mbb) {mBB=mbb; return this;}
             public void close() {}
@@ -248,10 +254,14 @@ public class Benchmark {
             public void write(int b) {mBB.put((byte) b);}
             public void write(byte[] b) {}            
             public void write(byte[] b, int off, int l) {}
-        }.init(outbb)));
+        }.init(outbb));
+		mrb.serialize(dos);
+		dos.close();
+		
+		return outbb;
 	}
 	
-	static void serializeICS(ImmutableConciseSet ics) throws IOException{
+	static ByteBuffer serializeICS(ImmutableConciseSet ics) throws IOException {
 		byte[] b = ics.toBytes();
 		ByteBuffer outbb = ByteBuffer.allocate(b.length);
 		@SuppressWarnings("resource")
@@ -262,6 +272,8 @@ public class Benchmark {
         }.init(outbb));
 		
 		dos.write(b);
+		dos.close();
+		return outbb;
 	}
 	
 	static double test(Launcher job) {
