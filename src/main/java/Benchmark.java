@@ -29,7 +29,7 @@ import org.roaringbitmap.RoaringBitmap;
 
 public class Benchmark {
 
-	private static final int nbRepetitions = 100;
+	private static final int nbRepetitions = 1000;
 	private static final long warmup_ms = 1000L;
 	private static int careof=0;
 	private static ImmutableRoaringBitmap[] irbs = null;
@@ -39,6 +39,7 @@ public class Benchmark {
 	
 	public static void main(String[] args) {
         boolean sizeOf = true;
+        int NumberOfBitmaps = 200;
         try {
                 SizeOf.setMinSizeToLog(0);
                 SizeOf.skipStaticField(true);
@@ -54,7 +55,7 @@ public class Benchmark {
 			String dataSources[] = {"census1881.csv","census-income.csv","weather_sept_85.csv"};
 					
 			RealDataRetriever dataRetriever = new RealDataRetriever(args[0]);
-			int [][] datum = new int[200][];
+			int [][] datum = new int[NumberOfBitmaps][];
 			for(int i=0; i<dataSources.length; i++) {
 				String dataSet = dataSources[i];
 				//************ Roaring part ****************
@@ -64,8 +65,8 @@ public class Benchmark {
 				final FileOutputStream fos = new FileOutputStream(file);
 				final DataOutputStream dos = new DataOutputStream(fos);								
 				ArrayList<Long> offsets = new ArrayList<Long>();				
-				//Building 200 RoaringBitmaps 
-				for (int j=0; j<200; j++) {					
+				//Building NumberOfBitmaps RoaringBitmaps 
+				for (int j=0; j<NumberOfBitmaps; j++) {					
 					int[] data = dataRetriever.fetchBitPositions(dataSet, j);
 					datum[j] = data.clone();
 					RoaringBitmap rb = RoaringBitmap.bitmapOf(data);
@@ -78,10 +79,9 @@ public class Benchmark {
 				dos.close();
 				RandomAccessFile memoryMappedFile = new RandomAccessFile(file, "r");
 				MappedByteBuffer mbb = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);
-			
               //RAM space used in bytes
                 long sizeRAM = 0;
-                irbs = new ImmutableRoaringBitmap[200];
+                irbs = new ImmutableRoaringBitmap[NumberOfBitmaps];
                 int i_rb = 0;
 				for(int k=0; k < offsets.size()-1; k++) {
 					mbb.position((int)offsets.get(k).longValue());
@@ -95,7 +95,7 @@ public class Benchmark {
 				irbs = Arrays.copyOfRange(irbs, 0, i_rb);
 				//Disk space used in bytes
 				long sizeDisk = file.length();
-				//Horizontal unions between 200 Roaring bitmaps
+				//Horizontal unions between NumberOfBitmaps Roaring bitmaps
 				long horizUnionTime = (long) test(new Launcher() {
 					@Override
                     public void launch() {
@@ -103,7 +103,7 @@ public class Benchmark {
 						careof+=irb.getCardinality(); 
                     }
 				});
-				//Intersections between 200 Roaring bitmaps
+				//Intersections between NumberOfBitmaps Roaring bitmaps
 				double intersectTime = test(new Launcher() {
 					@Override
                     public void launch() {
@@ -111,13 +111,13 @@ public class Benchmark {
 						careof+=irb.getCardinality(); 
                     }
 				});
-				//Average time to retrieve set bits
-				long scanTime = testScanRoaring();
+	                        //Average time to retrieve set bits
+				double scanTime = testScanRoaring();
 				System.out.println("***************************");
 				System.out.println("Roaring bitmap on "+dataSet+" dataset");
 				System.out.println("***************************");
-				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+(sizeRAM/200)+" bytes/bitmap)");
-				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+(sizeDisk/200)+" bytes/bitmap)");
+				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+Math.round(sizeRAM*1./NumberOfBitmaps)+" bytes/bitmap)");
+				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+Math.round(sizeDisk*1./NumberOfBitmaps)+" bytes/bitmap)");
 				System.out.println("Horizontal unions time = "+horizUnionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
@@ -133,8 +133,8 @@ public class Benchmark {
 				final FileOutputStream fos = new FileOutputStream(file);
 				final DataOutputStream dos = new DataOutputStream(fos);				
 				ArrayList<Long> offsets = new ArrayList<Long>();
-				//Building 200 ConciseSets 
-				for (int j=0; j<200; j++) {					
+				//Building NumberOfBitmaps ConciseSets 
+				for (int j=0; j<NumberOfBitmaps; j++) {					
 					ConciseSet cs = toConcise(datum[j]);
 					offsets.add(fos.getChannel().position());
 					int[] ints = cs.getWords();
@@ -160,7 +160,7 @@ public class Benchmark {
 				}
 				//Disk storage in bytes
 				long sizeDisk = file.length();
-				//Average time to compute unions between 200 ConciseSets
+				//Average time to compute unions between NumberOfBitmaps ConciseSets
 				long unionTime = (long) test(new Launcher() {
 					@Override
                     public void launch() {
@@ -168,7 +168,7 @@ public class Benchmark {
 						careof+=ics.size(); 
                     }
 				});
-				//Average time to compute intersects between 200 ConciseSets
+				//Average time to compute intersects between NumberOfBitmaps ConciseSets
 				long intersectTime = (long) test(new Launcher() {
 					@Override
                     public void launch() {
@@ -177,13 +177,13 @@ public class Benchmark {
                     }
 				});
 				//Average time to retrieve set bits
-				long scanTime = testScanConcise();
+				double scanTime = testScanConcise();
 				
 				System.out.println("***************************");
 				System.out.println("ConciseSet on "+dataSet+" dataset");
 				System.out.println("***************************");
-				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+(sizeRAM/200)+" bytes/bitmap)");
-				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+(sizeDisk/200)+" bytes/bitmap)");
+				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+Math.round(sizeRAM*1./NumberOfBitmaps)+" bytes/bitmap)");
+				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+Math.round(sizeDisk*1./NumberOfBitmaps)+" bytes/bitmap)");
 				System.out.println("Unions time = "+unionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
@@ -208,15 +208,14 @@ public class Benchmark {
         int i, repeat=1;
         //Warming up the cache 
         do {
-            repeat *= 2;
+            repeat *= 2;// potentially unsafe for very large integers
             begin = System.currentTimeMillis();
             for (int r = 0; r < repeat; r++) {
                     job.launch();
             }
             end = System.currentTimeMillis();
-            jobTime = (end - begin)/nbRepetitions;
-        } while (jobTime < warmup_ms);
-        
+            jobTime = (end - begin);
+        } while ((jobTime < warmup_ms) && (repeat < (1<<24)));
         //We can start timings now 
         begin = System.currentTimeMillis();
         for (i = 0; i < nbRepetitions; ++i) {
@@ -227,7 +226,7 @@ public class Benchmark {
         return (double)(jobTime) / (double)(nbRepetitions);
 	}
 	
-	static long testScanRoaring() {
+	static double testScanRoaring() {
         long scanTime, begin, end;
         int i, k, repeat=1;
         org.roaringbitmap.IntIterator it;
@@ -248,8 +247,7 @@ public class Benchmark {
 					scanTime+=end-begin;
 				}
             }
-            scanTime/=nbRepetitions;
-        } while (scanTime < warmup_ms);
+        } while ((scanTime < warmup_ms) && (repeat<(1<<24)));
         
         //We can start timings now 
         scanTime = 0;
@@ -266,12 +264,10 @@ public class Benchmark {
 				scanTime+=end-begin;
 			}
 		}
-		scanTime/=nbRepetitions;
-        
-        return scanTime;
+        return scanTime*1./nbRepetitions;
 	}
 
-	static long testScanConcise() {
+	static double testScanConcise() {
         long scanTime, begin, end;
         int i, k, repeat=1;
         IntIterator it;
@@ -292,8 +288,7 @@ public class Benchmark {
 					scanTime+=end-begin;
 				}
             }
-            scanTime/=nbRepetitions;
-        } while (scanTime < warmup_ms);
+        } while ((scanTime < warmup_ms)&&(repeat<(1<<24)));
         
         //We can start timings now 
         scanTime = 0;
@@ -310,9 +305,7 @@ public class Benchmark {
 				scanTime+=end-begin;
 			}
 		}
-		scanTime/=nbRepetitions;
-        
-        return scanTime;
+        return scanTime*1./nbRepetitions;
 	}
 	
 	abstract static class Launcher {

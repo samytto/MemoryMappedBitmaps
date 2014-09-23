@@ -120,7 +120,7 @@
   	<dependency>
         <groupId>org.roaringbitmap</groupId>
         <artifactId>RoaringBitmap</artifactId>
-        <version>0.3.4</version>
+        <version>0.4.0</version>
     </dependency> 
   	<dependency>
   		<groupId>com.google.collections</groupId>
