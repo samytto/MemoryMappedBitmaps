@@ -20,7 +20,9 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
+
 import net.sourceforge.sizeof.SizeOf;
+
 import org.roaringbitmap.buffer.BufferFastAggregation;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
@@ -121,7 +123,7 @@ public class Benchmark {
 				irbs = Arrays.copyOfRange(irbs, 0, i_rb);
 				//Disk space used in bytes
 				long sizeDisk = file.length();
-				//Horizontal unions between NumberOfBitmaps Roaring bitmaps
+				//Average time to compute the union of NumberOfBitmaps Roarings
 				long horizUnionTime = (long) test(new Launcher() {
 					@Override
                     public void launch() {
@@ -129,7 +131,7 @@ public class Benchmark {
 						careof+=irb.getCardinality(); 
                     }
 				});
-				//Intersections between NumberOfBitmaps Roaring bitmaps
+				//Average time to compute the intersection of NumberOfBitmaps Roarings
 				double intersectTime = test(new Launcher() {
 					@Override
                     public void launch() {
@@ -184,7 +186,7 @@ public class Benchmark {
 					dos.flush();
 				}
 				long lastOffset = fos.getChannel().position();
-				dos.close();                
+				dos.close();               
                 //RAM storage in bytes
                 long sizeRAM = 0;
                 icss = new ArrayList<ImmutableConciseSet>();
@@ -192,10 +194,11 @@ public class Benchmark {
 				MappedByteBuffer mbb = memoryMappedFile.getChannel().
 										map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);
 				double deserializationTime = 0.0;
-				for(int k=0; k < offsets.size()-1; k++) {
+				for(int k=0; k < offsets.size(); k++) {
 					mbb.position((int)offsets.get(k).longValue());
 					final ByteBuffer bb = mbb.slice();
-					bb.limit((int) (offsets.get(k+1)-offsets.get(k)));
+					long offsetLimit = k < 199 ? offsets.get(k+1) : lastOffset;
+					bb.limit((int) (offsetLimit-offsets.get(k)));
 					//Measuring deserializationTime
 					long time=0; int cpt=0;	                
 					while(cpt++<repeatDeser) {
@@ -212,7 +215,7 @@ public class Benchmark {
 				}
 				//Disk storage in bytes
 				long sizeDisk = file.length();
-				//Average time to compute unions between NumberOfBitmaps ConciseSets
+				//Average time to compute the union of NumberOfBitmaps ConciseSets
 				long unionTime = (long) test(new Launcher() {
 					@Override
                     public void launch() {
@@ -220,7 +223,7 @@ public class Benchmark {
 						careof+=ics.size(); 
                     }
 				});
-				//Average time to compute intersects between NumberOfBitmaps ConciseSets
+				//Average time to compute the intersection of NumberOfBitmaps ConciseSets
 				long intersectTime = (long) test(new Launcher() {
 					@Override
                     public void launch() {
