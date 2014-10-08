@@ -13,18 +13,17 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
-
 import net.sourceforge.sizeof.SizeOf;
-
 import org.roaringbitmap.buffer.BufferFastAggregation;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.RoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 
 public class Benchmark {
@@ -36,6 +35,8 @@ public class Benchmark {
 	private static ArrayList<ImmutableConciseSet> icss = null;
 	private static ImmutableRoaringBitmap irb = null;
 	private static ImmutableConciseSet ics = null;
+	private static int repeatSerial = 100;
+	private static int repeatDeser = 200;
 	
 	public static void main(String[] args) {
         boolean sizeOf = true;
@@ -64,13 +65,26 @@ public class Benchmark {
 				file.deleteOnExit();
 				final FileOutputStream fos = new FileOutputStream(file);
 				final DataOutputStream dos = new DataOutputStream(fos);								
-				ArrayList<Long> offsets = new ArrayList<Long>();				
+				ArrayList<Long> offsets = new ArrayList<Long>();
+				long serializationTime = 0;
 				//Building NumberOfBitmaps RoaringBitmaps 
 				for (int j=0; j<NumberOfBitmaps; j++) {					
 					int[] data = dataRetriever.fetchBitPositions(dataSet, j);
 					datum[j] = data.clone();
-					RoaringBitmap rb = RoaringBitmap.bitmapOf(data);
+					final MutableRoaringBitmap rb = MutableRoaringBitmap.bitmapOf(data);
 					rb.trim();
+					//Measuring the memory serialization's average time
+					long time=0, cpt=0;
+					while(cpt++<repeatSerial){
+					try {
+						long bef = System.nanoTime();
+						ByteBuffer bb = serializeRoaring(rb);
+						careof+=bb.capacity();
+						long aft = System.nanoTime();
+						time += aft-bef;
+						} catch (IOException e) {e.printStackTrace();}
+					}
+					serializationTime+= time/repeatSerial;
 					offsets.add(fos.getChannel().position());
 					rb.serialize(dos);
 					dos.flush();
@@ -79,19 +93,31 @@ public class Benchmark {
 				dos.close();
 				RandomAccessFile memoryMappedFile = new RandomAccessFile(file, "r");
 				MappedByteBuffer mbb = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);
-              //RAM space used in bytes
+                //RAM space used in bytes
                 long sizeRAM = 0;
                 irbs = new ImmutableRoaringBitmap[NumberOfBitmaps];
                 int i_rb = 0;
-				for(int k=0; k < offsets.size()-1; k++) {
+                double deserializationTime = 0.0;
+				for(int k=0; k < offsets.size(); k++) {
 					mbb.position((int)offsets.get(k).longValue());
 					final ByteBuffer bb = mbb.slice(); 
-					bb.limit((int) (offsets.get(k+1)-offsets.get(k)));
+					long offsetLimit = k < 199 ? offsets.get(k+1) : lastOffset;
+					bb.limit((int) (offsetLimit-offsets.get(k)));
+					//Measuring deserializationTime
+					long time=0; int cpt=0;
+					while(cpt++<repeatDeser) {
+						long bef = System.nanoTime();
+						ImmutableRoaringBitmap irb = new ImmutableRoaringBitmap(bb.slice());
+						careof+=irb.getCardinality();
+						long aft = System.nanoTime();
+						if(cpt>100) time += aft-bef;
+					}
+					deserializationTime+= (double)time/(double)repeatDeser;
 					ImmutableRoaringBitmap irb = new ImmutableRoaringBitmap(bb);
 					irbs[i_rb] = irb;
 					i_rb++;
 					if(sizeOf) sizeRAM += (SizeOf.deepSizeOf(irb));
-				}
+				}				
 				irbs = Arrays.copyOfRange(irbs, 0, i_rb);
 				//Disk space used in bytes
 				long sizeDisk = file.length();
@@ -111,13 +137,15 @@ public class Benchmark {
 						careof+=irb.getCardinality(); 
                     }
 				});
-	                        //Average time to retrieve set bits
+	            //Average time to retrieve set bits
 				double scanTime = testScanRoaring();
 				System.out.println("***************************");
 				System.out.println("Roaring bitmap on "+dataSet+" dataset");
 				System.out.println("***************************");
 				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+Math.round(sizeRAM*1./NumberOfBitmaps)+" bytes/bitmap)");
 				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+Math.round(sizeDisk*1./NumberOfBitmaps)+" bytes/bitmap)");
+				System.out.println("Serialization time = "+((serializationTime/NumberOfBitmaps)/1000)+" ms/bitmap");
+				System.out.println("Deserialization time = "+((deserializationTime/NumberOfBitmaps)/1000)+" ms/bitmap");
 				System.out.println("Horizontal unions time = "+horizUnionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
@@ -133,13 +161,26 @@ public class Benchmark {
 				final FileOutputStream fos = new FileOutputStream(file);
 				final DataOutputStream dos = new DataOutputStream(fos);				
 				ArrayList<Long> offsets = new ArrayList<Long>();
+				long serializationTime = 0;
 				//Building NumberOfBitmaps ConciseSets 
 				for (int j=0; j<NumberOfBitmaps; j++) {					
-					ConciseSet cs = toConcise(datum[j]);
+					ConciseSet cs = toConcise(datum[j]);					
+					//Measuring the memory serialization's average time
+					final ImmutableConciseSet ics = ImmutableConciseSet.newImmutableFromMutable(cs);
+					long time=0, cpt=0;					
+					while(cpt++<repeatSerial) {
+					try {
+						long bef = System.nanoTime();
+						ByteBuffer bb = serializeICS(ics);
+						careof+=bb.capacity();
+						long aft = System.nanoTime();
+						time += aft-bef;
+						} catch (IOException e) {e.printStackTrace();}
+					}
+					serializationTime+= time/repeatSerial;
 					offsets.add(fos.getChannel().position());
-					int[] ints = cs.getWords();
-					for(int k=0; k<ints.length; k++)
-						dos.writeInt(ints[k]);
+					byte[] ICS = ics.toBytes();
+					dos.write(ICS);
 					dos.flush();
 				}
 				long lastOffset = fos.getChannel().position();
@@ -150,10 +191,21 @@ public class Benchmark {
                 RandomAccessFile memoryMappedFile = new RandomAccessFile(file, "r");
 				MappedByteBuffer mbb = memoryMappedFile.getChannel().
 										map(FileChannel.MapMode.READ_ONLY, 0, lastOffset);
+				double deserializationTime = 0.0;
 				for(int k=0; k < offsets.size()-1; k++) {
 					mbb.position((int)offsets.get(k).longValue());
 					final ByteBuffer bb = mbb.slice();
 					bb.limit((int) (offsets.get(k+1)-offsets.get(k)));
+					//Measuring deserializationTime
+					long time=0; int cpt=0;	                
+					while(cpt++<repeatDeser) {
+						long bef = System.nanoTime();
+						ImmutableConciseSet ics = new ImmutableConciseSet(bb.slice());
+						careof+=irb.getCardinality();
+						long aft = System.nanoTime();
+						if(cpt>100) time += aft-bef;
+					}
+					deserializationTime+= (double)time/(double)repeatDeser;
 					ImmutableConciseSet ics = new ImmutableConciseSet(bb);
 					icss.add(ics);
 					if(sizeOf)	sizeRAM += (SizeOf.deepSizeOf(ics));
@@ -184,6 +236,8 @@ public class Benchmark {
 				System.out.println("***************************");
 				System.out.println("RAM Size = "+(sizeRAM/1024)+" Kbytes"+" ("+Math.round(sizeRAM*1./NumberOfBitmaps)+" bytes/bitmap)");
 				System.out.println("Disk Size = "+(sizeDisk/1024)+" Kbytes"+" ("+Math.round(sizeDisk*1./NumberOfBitmaps)+" bytes/bitmap)");
+				System.out.println("Serialization time = "+((serializationTime/NumberOfBitmaps)/1000)+" ms/bitmap");
+				System.out.println("Deserialization time = "+((deserializationTime/NumberOfBitmaps)/1000)+" ms/bitmap");
 				System.out.println("Unions time = "+unionTime+" ms");
 				System.out.println("Intersections time = "+intersectTime+" ms");
 				System.out.println("Scans time = "+scanTime+" ms");
@@ -307,6 +361,40 @@ public class Benchmark {
 		}
         return scanTime*1./nbRepetitions;
 	}
+
+	@SuppressWarnings("resource")
+	static ByteBuffer serializeRoaring(MutableRoaringBitmap mrb) throws IOException {
+			ByteBuffer outbb = ByteBuffer.allocate(mrb.serializedSizeInBytes());
+			DataOutputStream dos = new DataOutputStream(new OutputStream(){
+	        ByteBuffer mBB;
+	        OutputStream init(ByteBuffer mbb) {mBB=mbb; return this;}
+	        	public void close() {}
+	            public void flush() {}
+	            public void write(int b) {mBB.put((byte) b);}
+	            public void write(byte[] b) {}            
+	            public void write(byte[] b, int off, int l) {}
+	        }.init(outbb));
+			mrb.serialize(dos);
+			dos.close();
+			
+			return outbb;
+		}
+		
+	static ByteBuffer serializeICS(ImmutableConciseSet ics) throws IOException {
+			byte[] b = ics.toBytes();
+			ByteBuffer outbb = ByteBuffer.allocate(b.length);
+			@SuppressWarnings("resource")
+			DataOutputStream dos = new DataOutputStream(new OutputStream() {
+				ByteBuffer mBB;
+	            OutputStream init(ByteBuffer mbb) {mBB=mbb; return this;}           
+	            public void write(int b) {mBB.put((byte) b);}
+	        }.init(outbb));
+			
+			dos.write(b);
+			dos.close();
+			
+			return outbb;
+		}
 	
 	abstract static class Launcher {
 		public abstract void launch();
